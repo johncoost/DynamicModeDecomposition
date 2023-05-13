@@ -1,0 +1,103 @@
+\documentclass[]{article}
+\usepackage{extsizes}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{enumitem}
+\usepackage{amsfonts} 
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage{stackengine}
+\newtheorem{axiom}{Axiom}
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\DeclareMathOperator{\Aut}{Aut}
+%opening
+\title{Dynamic Mode Decomposition}
+\author{João Costa}
+
+
+\begin{document}
+
+\maketitle
+
+\section{Discrete-Time Dynamical Systems}
+Consider a continuous-time dynamical system given by
+\begin{equation}
+	\dot{\mathbf{x}}=f(x) \iff \frac{d\mathbf{x}}{dt} = f(\mathbf{x}(t)).
+\end{equation}
+
+\noindent We can obtain a discrete-time dynamical system from $(1)$ by definining
+\begin{equation}
+	x_{k+1}=F(x_k),
+\end{equation}
+where $k$ is a timestep at time $t=k$. \\
+We can define $x_k = \mathbf{x}(k \Delta t)$, where $\Delta t$ is the sampling rate. Then,
+\begin{equation}
+	x_{k+1}=x_k+\int_{k \Delta t}^{(k+1)\Delta t} f(\mathbf{x}(\tau)) d\tau
+\end{equation}
+is the flow map of our dynamical system, denoted $F_{\Delta t}$. \\
+Discrete-time dynamical systems are much more general than continuous-time ones since we can always extract a discrete-time dynamical system from a continuous one but the inverse is, in general, not possible.
+
+\section{DMD}
+DMD is an data-driven technique to obtain linear reduced-order models for high dimensional complex systems and enable us to extract spatio-temporal coherent structures or patterns that dominate the measurement data from that dynamical system. \\
+DMD is extremely useful when modelling a dynamical system since we can extract coupled spatio-temporal modes from it. \\
+The idea is to extract temporal snapshots $x_1,x_2,\dots,x_{m-1},x_m$ from data and write these into matrices $X$ and $X'$ given by
+\begin{equation}
+	X = \begin{bmatrix}
+			| & | & & | \\
+			x_1 & x_2 & \cdots & x_{m-1} \\
+			| & | & & |
+	\end{bmatrix}
+\end{equation}
+and
+\begin{equation}
+	X' = \begin{bmatrix}
+		| & | & & | \\
+		x_2 & x_3 & \cdots & x_{m} \\
+		| & | & & |
+	\end{bmatrix}
+\end{equation}
+and try to predict a linear operator $A=X'X^{\dagger}$ such that
+\begin{equation}
+	X' \sim AX,
+\end{equation}
+in order to be able to do a future state prediction
+\begin{equation}
+	x_{k+1}=Ax_k.
+\end{equation}
+Since we are working on high-dimensional data, $A$ will be a high-dimensional matrix and therefore it would be useful to not compute $A$, explicitly. What DMD does is to approximate the leading eigenvalues and eigenvectors of $A$ without actually computing it. Each eigenvector of $A$ can be interpreted as the shape of one of the columns vectors and the eigenvector can be reshaped into a flow field. So, these are the eigenflow fields that correspond to dominant spatio-temporal modes. The eigenvalues correspond to a coherent time dynamic, either pure tone sine and cosine waves or pure exponential decay or exponential growth or combinations, such as decaying or growing sines and cosines. Therefore, if we have the eigendecomposition of $A$, we can use that to predict how the dynamical system will evolve in the future by predicting the future dynamics and combining the modes to figure out how the state will look in the future.
+
+\section{DMD Algorithm}
+If we collect enough snapshots of data in time, we can find dominant coherent patterns that emerge. \\
+The algorithm is as follows:
+\begin{enumerate}
+	\item $X=U\Sigma V^*$ and $X'=AU\Sigma V^*$;
+	\item $U^*X'V\Sigma^{-1}=U^*AU=\tilde{A}$;
+	\item $\tilde{A}W=W\Lambda$;
+	\item $\Phi = X'V\Sigma^{-1}W$.
+\end{enumerate}
+Finally, in order to do a forecast $\hat{X}$ using this algorithm, we perform
+\begin{equation}
+	\hat{X}(k \Delta t) = \Phi \Lambda^T b_0.
+\end{equation}
+The algorithm runs in detail as follows:
+\begin{enumerate}
+	\item \textbf{Singular Value Decomposition (SVD) of $X$}: $U \in M_{n \times n}(\mathbb{C})$ and $V \in M_{m \times m}(\mathbb{C})$ are unitary matrices and $\Sigma \in M_{n \times m}(\mathbb{C})$ is a diagonal matrix. These matrices are extremely important since 
+	\begin{equation}
+		\begin{split}
+			UU^*&=U^*U=I_n \\ 
+			VV^*&=V^*V=I_m.
+		\end{split}
+	\end{equation}
+	This means that computing the inverse of $U$ and $V$ is $\mathcal{O}(n^2)$ and $\mathcal{O}(m^2)$ time, respectively, while computing the inverse of arbitrary square matrices is $\mathcal{O}(n^3)$.
+	It is also important to note that if $\alpha \in \Aut(U)$ or $\alpha \in \Aut(V)$ is unitary, then it is an isometry, i.e., it preserves distances. \\
+	The matrix $U$ contains the dominant coherent structures. Its columns are the Proper Orthogonal Decomposition modes and they are organized from most important to least important in terms of capturing the dynamics of $X$. \\
+	Geometrically, the SVD decomposition can be used to transform any linear transformation $\alpha$ represented by a matrix $X \in M_{n \times n}(\mathbb{C})$ to three geometrical transformations: $U \in M_{n \times n}(\mathbb{C})$ and $V \in M_{m \times m}(\mathbb{C})$ correspond to rotations/reflections and $\sigma$ corresponds to the coordinate-scaling given by each of the singular values $\sigma_{ii} \in \Sigma \in M_{n \times m}(\mathbb{C})$;
+	\item This is just a reformulation of the equation given in $1.$ Note that $U^* A U$	is just a projection of $A$ into the dominant singular vectors given by the matrices $U^*$ and $U$. $\tilde{A}$ is a linear best-fit dynamical system that tells how the dominant coherent patterns evolve in time.
+	\item \textbf{Computation of the eigenvalues and eigenvectors of $\tilde{A}$}: $W$ is the matrix of eigenvectors of $\tilde{A}$ and $\Lambda$ are the eigenvalues of $\tilde{A}$. It is important to note that the eigenvectors and corresponding eigenvalues of $A$ and $\tilde{A}$ are the same;
+	\item $\Phi$ are the eigenvectors of the original $A$ matrix.
+	
+\end{enumerate}
+\end{document}
