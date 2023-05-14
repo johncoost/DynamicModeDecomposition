@@ -5,7 +5,7 @@ def DMD(data, r):
     X = data[:,:-1]
     X_prime = data[:,1:]
     print(X, X_prime)
-    ## Perform singular value decomposition on X1
+    ## Perform singular value decomposition on X
     u, s, v = np.linalg.svd(X, full_matrices = False)
     print(u, s, v)
     ## Compute the Koopman matrix
